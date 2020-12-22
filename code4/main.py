@@ -12,7 +12,8 @@ import scipy.misc
 
 t = str(time.time())
 
-def plot(record, info):
+
+def plot(record, info, para=''):
     plt.figure()
     fig, ax = plt.subplots()
     ax.plot(record['steps'], record['mean'],
@@ -22,8 +23,9 @@ def plot(record, info):
     ax.set_xlabel('number of steps')
     ax.set_ylabel('Average score per episode')
     import os
-    os.makedirs(t + '-{}'.format(info), exist_ok=True)
-    fig.savefig(t + '-{}/performance.png'.format(info))
+    dir = t + '-{}'.format(info) + para
+    os.makedirs(dir, exist_ok=True)
+    fig.savefig(dir + '/performance.png')
     plt.close()
 
 
@@ -46,15 +48,28 @@ def main():
     # agent initial
     # you should finish your agent with QAgent
     # e.g. agent = myQAgent()
-    agent = QAgent()
-    dynamics_model = NetworkModel(8, 8, policy=agent)
     epsilon = 0.2
     alpha = 0.2
     gamma = 0.99
-    n = 0
+    n = 2500
     m = 0
+    h = 1
     start_planning = 0
-    h = 0
+    agent = MyQAgent(lr=alpha, discount=gamma)
+    model_type = args.model
+    model_type = 'dyna'
+    is_nn = True
+    is_clip = False
+    if model_type == 'nn':
+        dynamics_model = NetworkModel(8, 8, policy=agent)
+    elif model_type == 'advnn':
+        dynamics_model = AdvNetworkModel(8, 8, policy=agent)
+        is_clip = True
+    elif model_type == 'dyna':
+        dynamics_model = DynaModel(8, 8, policy=agent)
+        is_nn = False
+    else:
+        print('Unable to identify model type: {}'.format(str(model_type)))
 
     # start to train your agent
     for i in range(num_updates * 10):
@@ -72,10 +87,10 @@ def main():
             # interact with the environment
             obs_next, reward, done, info = envs.step(action)
             obs_next = obs_next.astype(int)
+            agent.update_table(obs, action, obs_next, reward, done, is_clip)
             # add your Q-learning algorithm
             dynamics_model.store_transition(obs, action, reward, obs_next)
             obs = obs_next
-
 
             if done:
                 obs = envs.reset()
@@ -84,14 +99,18 @@ def main():
                 s, idx = dynamics_model.sample_state()
                 # buf_tuple = dynamics_model.buffer[idx]
                 for _ in range(h):
-                    if np.random.rand() < epsilon:
-                        a = envs.action_sample()
+                    if is_nn:
+                        if np.random.rand() < epsilon:
+                            a = envs.action_sample()
+                        else:
+                            a = agent.select_action(s)
                     else:
-                        a = agent.select_action(s)
+                        a = dynamics_model.sample_action(s)
                     s_ = dynamics_model.predict(s, a)
                     r = envs.R(s, a, s_)
                     done = envs.D(s, a, s_)
                     # add your Q-learning algorithm
+                    agent.update_table(s, a, s_, r, done, is_clip)
                     s = s_
                     if done:
                         break
@@ -117,16 +136,16 @@ def main():
 
             end = time.time()
             print("TIME {} Updates {}, num timesteps {}, FPS {} \n avrage/min/max reward {:.1f}/{:.1f}/{:.1f}".format(
-                    time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start)),
-                    i, total_num_steps, int(total_num_steps / (end - start)),
-                    np.mean(reward_episode_set),
-                    np.min(reward_episode_set),
-                    np.max(reward_episode_set)))
+                time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start)),
+                i, total_num_steps, int(total_num_steps / (end - start)),
+                np.mean(reward_episode_set),
+                np.min(reward_episode_set),
+                np.max(reward_episode_set)))
             record['steps'].append(total_num_steps)
             record['mean'].append(np.mean(reward_episode_set))
             record['max'].append(np.max(reward_episode_set))
             record['min'].append(np.min(reward_episode_set))
-            plot(record, args.info)
+            plot(record, args.info, '-n={}'.format(n))
 
 
 if __name__ == "__main__":
