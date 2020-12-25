@@ -139,8 +139,6 @@ class NetworkModel(Model):
         s = self.norm_s(s)
         s_ = self.norm_s(s_)
         self.buffer.append([s, a, r, s_])
-        # if s[-1] - s_[-1] != 0:
-        #     self.sensitive_index.append(len(self.buffer) - 1)
 
     def train_transition(self, batch_size):
         s_list = []

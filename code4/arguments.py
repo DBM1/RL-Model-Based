@@ -21,7 +21,7 @@ def get_args():
     parser.add_argument(
         '--num-frames',
         type=int,
-        default=1500)
+        default=10000)
     parser.add_argument(
         '--info',
         type=str,
@@ -48,7 +48,22 @@ def get_args():
         type=str,
         default='nn',
         help='model type: "dyna", "nn", "advnn"')
-
+    parser.add_argument(
+        '--n',
+        type=int,
+        default=100)
+    parser.add_argument(
+        '--m',
+        type=int,
+        default=0)
+    parser.add_argument(
+        '--h',
+        type=int,
+        default=1)
+    parser.add_argument(
+        '--sp',
+        type=int,
+        default=0)
     args = parser.parse_args()
 
     return args

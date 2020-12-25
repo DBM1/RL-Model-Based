@@ -10,10 +10,10 @@ from env import Make_Env
 from gym_minigrid.wrappers import *
 import scipy.misc
 
-t = str(time.time())
+t = time.time()
 
 
-def plot(record, info, para=''):
+def plot(record, info, convergence_time, para=''):
     plt.figure()
     fig, ax = plt.subplots()
     ax.plot(record['steps'], record['mean'],
@@ -23,10 +23,15 @@ def plot(record, info, para=''):
     ax.set_xlabel('number of steps')
     ax.set_ylabel('Average score per episode')
     import os
-    dir = t + '-{}'.format(info) + para
+    dir = str(t) + '-{}'.format(info) + para
     os.makedirs(dir, exist_ok=True)
     fig.savefig(dir + '/performance.png')
+    with open(dir + '/convergence.txt', 'a') as f:
+        if convergence_time < 5 and record['min'][-1] > 85:
+            f.write('{} {}\n'.format(record['steps'][-1], time.strftime('%Mm %Ss', time.gmtime(time.time() - t))))
+            convergence_time += 1
     plt.close()
+    return convergence_time
 
 
 def main():
@@ -51,13 +56,16 @@ def main():
     epsilon = 0.2
     alpha = 0.2
     gamma = 0.99
-    n = 2500
-    m = 0
+    n = args.n
+    m = args.m
+    h = args.h
+    start_planning = args.sp
+    n = 300
+    m = 1000
     h = 1
-    start_planning = 0
+    start_planning = 5
     agent = MyQAgent(lr=alpha, discount=gamma)
     model_type = args.model
-    model_type = 'dyna'
     is_nn = True
     is_clip = False
     if model_type == 'nn':
@@ -71,8 +79,19 @@ def main():
     else:
         print('Unable to identify model type: {}'.format(str(model_type)))
 
+    params = {
+        '-n=': n,
+        '-m=': m,
+        '-h=': h,
+        '-sp=': start_planning
+    }
+    suffix = ''
+    for k, v in params.items():
+        suffix += k + str(v)
+    convergence_time = 0
+
     # start to train your agent
-    for i in range(num_updates * 10):
+    for i in range(num_updates):
         # an example of interacting with the environment
         obs = envs.reset()
         obs = obs.astype(int)
@@ -145,7 +164,7 @@ def main():
             record['mean'].append(np.mean(reward_episode_set))
             record['max'].append(np.max(reward_episode_set))
             record['min'].append(np.min(reward_episode_set))
-            plot(record, args.info, '-n={}'.format(n))
+            convergence_time = plot(record, args.info, convergence_time, suffix)
 
 
 if __name__ == "__main__":
