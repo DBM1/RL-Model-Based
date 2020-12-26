@@ -46,16 +46,16 @@ def get_args():
     parser.add_argument(
         '--model',
         type=str,
-        default='nn',
+        default='dyna',
         help='model type: "dyna", "nn", "advnn"')
     parser.add_argument(
         '--n',
         type=int,
-        default=100)
+        default=300)
     parser.add_argument(
         '--m',
         type=int,
-        default=0)
+        default=1500)
     parser.add_argument(
         '--h',
         type=int,
@@ -63,7 +63,8 @@ def get_args():
     parser.add_argument(
         '--sp',
         type=int,
-        default=0)
+        default=5,
+        help='start planning')
     args = parser.parse_args()
 
     return args

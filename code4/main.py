@@ -60,10 +60,6 @@ def main():
     m = args.m
     h = args.h
     start_planning = args.sp
-    n = 300
-    m = 1000
-    h = 1
-    start_planning = 5
     agent = MyQAgent(lr=alpha, discount=gamma)
     model_type = args.model
     is_nn = True
